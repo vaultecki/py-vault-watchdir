@@ -1,93 +1,230 @@
-# import time module, Observer, FileSystemEventHandler
+# Copyright [2025] [ecki]
+# SPDX-License-Identifier: Apache-2.0
+
+"""
+Improved Directory Watcher with better error handling and resource management
+"""
 import time
+import logging
+from pathlib import Path
+from threading import Event
+from typing import Optional
 import watchdog.observers
 import watchdog.events
 import PySignal
-import threading
 
-
-class VaultWatch:
-    """
-    watch directory for changes
-    """
-    def __init__(self, watch_directory, sleep_time):
-        """
-        :param watch_directory: directory path
-        :type watch_directory: str
-        :param sleep_time:  sleep time
-        :type sleep_time: int
-        """
-        self.directory = watch_directory
-        self.sleep_time = sleep_time
-        self.observer = watchdog.observers.Observer()
-        self.stop_flag = False
-        self.event_handler = None
-        threading.Timer(0.2, self.__start).start()
-
-    def __start(self):
-        # create handler,
-        self.event_handler = Handler()
-        self.observer.schedule(self.event_handler, self.directory, recursive=True)
-        # start observer thread
-        self.observer.start()
-        try:
-            while not self.stop_flag:
-                time.sleep(self.sleep_time)
-        except:
-            self.observer.stop()
-            print("Observer Stopped")
-
-        # self.observer.join()
-
-    def stop(self):
-        self.stop_flag = True
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 
 class Handler(watchdog.events.FileSystemEventHandler):
     """
-    create pysignal signals for changes
+    FileSystemEventHandler that emits PySignal signals for different event types
     """
-
+    # Class-level signals for different event types
     create_signal = PySignal.ClassSignal()
     dir_create_signal = PySignal.ClassSignal()
     change_signal = PySignal.ClassSignal()
     dir_change_signal = PySignal.ClassSignal()
     delete_signal = PySignal.ClassSignal()
     dir_delete_signal = PySignal.ClassSignal()
+    move_signal = PySignal.ClassSignal()
+    dir_move_signal = PySignal.ClassSignal()
 
-    # @staticmethod
     def on_any_event(self, event):
-        if event.is_directory:
-            if event.event_type == "created":
-                self.dir_create_signal.emit(event.src_path)
-            elif event.event_type == 'modified':
-                self.dir_change_signal.emit(event.src_path)
-            elif event.event_type == 'deleted':
-                self.dir_delete_signal.emit(event.src_path)
-        # creating three different functions
-        elif event.event_type == 'created':
-            # Event is created, you can process it now
-            # print("Watchdog received file created - % s." % event.src_path)
+        """Handle all filesystem events and emit appropriate signals"""
+        try:
+            if event.is_directory:
+                self._handle_directory_event(event)
+            else:
+                self._handle_file_event(event)
+        except Exception as e:
+            logger.error(f"Error handling event {event}: {e}")
+
+    def _handle_directory_event(self, event):
+        """Handle directory-specific events"""
+        if event.event_type == "created":
+            logger.debug(f"Directory created: {event.src_path}")
+            self.dir_create_signal.emit(event.src_path)
+        elif event.event_type == 'modified':
+            logger.debug(f"Directory modified: {event.src_path}")
+            self.dir_change_signal.emit(event.src_path)
+        elif event.event_type == 'deleted':
+            logger.debug(f"Directory deleted: {event.src_path}")
+            self.dir_delete_signal.emit(event.src_path)
+        elif event.event_type == 'moved':
+            logger.debug(f"Directory moved: {event.src_path} -> {event.dest_path}")
+            self.dir_move_signal.emit((event.src_path, event.dest_path))
+
+    def _handle_file_event(self, event):
+        """Handle file-specific events"""
+        if event.event_type == 'created':
+            logger.debug(f"File created: {event.src_path}")
             self.create_signal.emit(event.src_path)
         elif event.event_type == 'modified':
-            # Event is modified, you can process it now
-            # print("Watchdog received file modified - % s." % event.src_path)
+            logger.debug(f"File modified: {event.src_path}")
             self.change_signal.emit(event.src_path)
         elif event.event_type == 'deleted':
-            # print("Watchdog received file deleted - % s." % event.src_path)
+            logger.debug(f"File deleted: {event.src_path}")
             self.delete_signal.emit(event.src_path)
+        elif event.event_type == 'moved':
+            logger.debug(f"File moved: {event.src_path} -> {event.dest_path}")
+            self.move_signal.emit((event.src_path, event.dest_path))
 
 
-def function_test(path_string):
-    print("receved path: {}".format(path_string))
+class VaultWatch:
+    """
+    Directory watcher with signal-based notifications
+
+    Example:
+        watch = VaultWatch("/path/to/watch")
+        watch.event_handler.create_signal.connect(my_callback)
+        watch.start()
+        # ... do work ...
+        watch.stop()
+    """
+
+    def __init__(self, watch_directory: str, recursive: bool = True):
+        """
+        Initialize directory watcher
+
+        :param watch_directory: Path to directory to watch
+        :param recursive: Watch subdirectories recursively
+        :raises ValueError: If directory doesn't exist
+        """
+        self.directory = Path(watch_directory)
+        if not self.directory.exists():
+            raise ValueError(f"Directory does not exist: {watch_directory}")
+        if not self.directory.is_dir():
+            raise ValueError(f"Path is not a directory: {watch_directory}")
+
+        self.recursive = recursive
+        self.observer: Optional[watchdog.observers.Observer] = None
+        self.event_handler = Handler()
+        self._stop_event = Event()
+        self._started = False
+
+        logger.info(f"VaultWatch initialized for: {self.directory}")
+
+    def start(self):
+        """Start watching the directory"""
+        if self._started:
+            logger.warning("Watcher already started")
+            return
+
+        try:
+            self.observer = watchdog.observers.Observer()
+            self.observer.schedule(
+                self.event_handler,
+                str(self.directory),
+                recursive=self.recursive
+            )
+            self.observer.start()
+            self._started = True
+            logger.info(f"Started watching: {self.directory}")
+        except Exception as e:
+            logger.error(f"Failed to start watcher: {e}")
+            raise
+
+    def stop(self, timeout: float = 5.0):
+        """
+        Stop watching the directory
+
+        :param timeout: Maximum time to wait for observer to stop
+        """
+        if not self._started:
+            logger.warning("Watcher not started")
+            return
+
+        logger.info("Stopping watcher...")
+        self._stop_event.set()
+
+        if self.observer:
+            self.observer.stop()
+            self.observer.join(timeout=timeout)
+            if self.observer.is_alive():
+                logger.warning("Observer thread did not stop gracefully")
+            else:
+                logger.info("Observer stopped successfully")
+
+        self._started = False
+
+    def is_running(self) -> bool:
+        """Check if watcher is currently running"""
+        return self._started and self.observer and self.observer.is_alive()
+
+    def __enter__(self):
+        """Context manager support"""
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager cleanup"""
+        self.stop()
+        return False
+
+
+# Example callback functions
+def on_file_created(path: str):
+    """Example callback for file creation"""
+    logger.info(f"File created callback: {path}")
+
+
+def on_file_modified(path: str):
+    """Example callback for file modification"""
+    logger.info(f"File modified callback: {path}")
+
+
+def on_file_deleted(path: str):
+    """Example callback for file deletion"""
+    logger.info(f"File deleted callback: {path}")
+
+
+def on_file_moved(paths: tuple):
+    """Example callback for file move"""
+    src, dest = paths
+    logger.info(f"File moved callback: {src} -> {dest}")
 
 
 if __name__ == '__main__':
-    print("start watch directory")
-    watch = VaultWatch("C:\\temp", 5)
-    time.sleep(2)
-    print("connect test function - create")
-    watch.event_handler.create_signal.connect(function_test)
-    time.sleep(5)
-    print("stop watching")
-    watch.stop()
+    # Example usage with context manager
+    import tempfile
+    import os
+
+    # Create a temporary directory for testing
+    with tempfile.TemporaryDirectory() as temp_dir:
+        logger.info(f"Using temporary directory: {temp_dir}")
+
+        # Create watcher with context manager
+        with VaultWatch(temp_dir) as watch:
+            # Connect callbacks
+            watch.event_handler.create_signal.connect(on_file_created)
+            watch.event_handler.change_signal.connect(on_file_modified)
+            watch.event_handler.delete_signal.connect(on_file_deleted)
+            watch.event_handler.move_signal.connect(on_file_moved)
+
+            logger.info("Watcher started. Creating test files...")
+
+            # Create test file
+            test_file = Path(temp_dir) / "test.txt"
+            test_file.write_text("Hello World")
+            time.sleep(0.5)
+
+            # Modify test file
+            test_file.write_text("Hello World Modified")
+            time.sleep(0.5)
+
+            # Move test file
+            moved_file = Path(temp_dir) / "test_moved.txt"
+            test_file.rename(moved_file)
+            time.sleep(0.5)
+
+            # Delete test file
+            moved_file.unlink()
+            time.sleep(0.5)
+
+        logger.info("Watcher stopped. Demo complete.")

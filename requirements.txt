@@ -1,2 +1,14 @@
+# Core Dependencies
 PySignal>=1.1.1
 watchdog>=5.0.3
+
+# Optional: For enhanced logging and debugging
+# colorlog>=6.7.0  # Colored terminal logs
+
+# Development Dependencies (uncomment for development)
+# pytest>=7.4.0           # Testing framework
+# pytest-cov>=4.1.0       # Code coverage
+# black>=23.7.0           # Code formatting
+# flake8>=6.1.0           # Linting
+# mypy>=1.5.0             # Type checking
+# pylint>=2.17.5          # Code analysis
