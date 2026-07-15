@@ -21,7 +21,13 @@ A robust Python directory watcher that monitors filesystem changes and emits sig
 ### Install Dependencies
 
 ```bash
-pip install -r requirements.txt
+pip install .
+```
+
+For development (linting with ruff, running tests with pytest):
+
+```bash
+pip install -e ".[dev]"
 ```
 
 ## Usage

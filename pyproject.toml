@@ -1,3 +1,28 @@
+[project]
+name = "py-vault-watchdir"
+version = "0.1.0"
+description = "Directory watcher with signal-based notifications, built on watchdog and PySignal"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.7"
+dependencies = [
+    "PySignal>=1.1.1",
+    "watchdog>=5.0.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "ruff>=0.6.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["watch_directory_change"]
+
 [tool.ruff]
 line-length = 100
 
