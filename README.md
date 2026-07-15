@@ -1,10 +1,10 @@
 # Directory Watcher with Signal-Based Notifications
 
-A robust Python directory watcher that monitors filesystem changes and emits signals for different event types using PySignal and watchdog.
+A robust Python directory watcher that monitors filesystem changes and emits signals for different event types using psygnal and watchdog.
 
 ## Features
 
-- **Signal-Based Architecture**: Uses PySignal for loose coupling between file events and handlers
+- **Signal-Based Architecture**: Uses psygnal for loose coupling between file events and handlers
 - **Comprehensive Event Handling**: Monitors file/directory creation, modification, deletion, and moves
 - **Resource Management**: Proper cleanup with context manager support
 - **Thread-Safe**: Built on watchdog's Observer pattern
@@ -223,7 +223,7 @@ The watcher includes comprehensive error handling:
 ## Technical Details
 
 - Built on `watchdog` for cross-platform filesystem monitoring
-- Uses `PySignal` for event emission and callback management
+- Uses `psygnal` for event emission and callback management
 - Thread-safe operation using watchdog's Observer pattern
 - Proper resource cleanup with context manager protocol
 
@@ -258,4 +258,4 @@ Suggestions and improvements are welcome!
 ## Dependencies
 
 - `watchdog>=5.0.3` - Cross-platform filesystem event monitoring
-- `PySignal>=1.1.1` - Signal/slot implementation for Python
+- `psygnal>=0.9.0` - Signal/slot implementation for Python

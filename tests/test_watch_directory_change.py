@@ -77,10 +77,7 @@ class TestHandlerSignals:
     def test_file_create_signal(self, tmp_path):
         received = []
         with VaultWatch(str(tmp_path)) as watch:
-            # NOTE: PySignal only keeps a strong reference to lambdas/partials;
-            # a bound method like `received.append` would be wrapped in a
-            # weakref that dies before it can ever fire. Use a lambda.
-            watch.event_handler.create_signal.connect(lambda p: received.append(p))
+            watch.event_handler.create_signal.connect(received.append)
 
             (tmp_path / "new_file.txt").write_text("content")
 
@@ -93,7 +90,7 @@ class TestHandlerSignals:
 
         received = []
         with VaultWatch(str(tmp_path)) as watch:
-            watch.event_handler.change_signal.connect(lambda p: received.append(p))
+            watch.event_handler.change_signal.connect(received.append)
 
             target.write_text("updated content")
 
@@ -106,7 +103,7 @@ class TestHandlerSignals:
 
         received = []
         with VaultWatch(str(tmp_path)) as watch:
-            watch.event_handler.delete_signal.connect(lambda p: received.append(p))
+            watch.event_handler.delete_signal.connect(received.append)
 
             target.unlink()
 
@@ -120,7 +117,7 @@ class TestHandlerSignals:
 
         received = []
         with VaultWatch(str(tmp_path)) as watch:
-            watch.event_handler.move_signal.connect(lambda p: received.append(p))
+            watch.event_handler.move_signal.connect(received.append)
 
             source.rename(dest)
 
@@ -132,7 +129,7 @@ class TestHandlerSignals:
     def test_directory_create_signal(self, tmp_path):
         received = []
         with VaultWatch(str(tmp_path)) as watch:
-            watch.event_handler.dir_create_signal.connect(lambda p: received.append(p))
+            watch.event_handler.dir_create_signal.connect(received.append)
 
             (tmp_path / "subdir").mkdir()
 
@@ -145,7 +142,7 @@ class TestHandlerSignals:
 
         received = []
         with VaultWatch(str(tmp_path)) as watch:
-            watch.event_handler.dir_delete_signal.connect(lambda p: received.append(p))
+            watch.event_handler.dir_delete_signal.connect(received.append)
 
             subdir.rmdir()
 
@@ -158,7 +155,7 @@ class TestHandlerSignals:
 
         received = []
         with VaultWatch(str(tmp_path), recursive=True) as watch:
-            watch.event_handler.create_signal.connect(lambda p: received.append(p))
+            watch.event_handler.create_signal.connect(received.append)
 
             (subdir / "nested.txt").write_text("content")
 
@@ -171,7 +168,7 @@ class TestHandlerSignals:
 
         received = []
         with VaultWatch(str(tmp_path), recursive=False) as watch:
-            watch.event_handler.create_signal.connect(lambda p: received.append(p))
+            watch.event_handler.create_signal.connect(received.append)
 
             (subdir / "nested.txt").write_text("content")
 

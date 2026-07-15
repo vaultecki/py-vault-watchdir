@@ -10,9 +10,9 @@ from pathlib import Path
 from threading import Event
 from typing import Optional
 
-import PySignal
 import watchdog.events
 import watchdog.observers
+from psygnal import Signal
 from watchdog.observers.api import BaseObserver
 
 logger = logging.getLogger(__name__)
@@ -21,17 +21,17 @@ logger.addHandler(logging.NullHandler())
 
 class Handler(watchdog.events.FileSystemEventHandler):
     """
-    FileSystemEventHandler that emits PySignal signals for different event types
+    FileSystemEventHandler that emits psygnal signals for different event types
     """
-    # Class-level signals for different event types
-    create_signal = PySignal.ClassSignal()
-    dir_create_signal = PySignal.ClassSignal()
-    change_signal = PySignal.ClassSignal()
-    dir_change_signal = PySignal.ClassSignal()
-    delete_signal = PySignal.ClassSignal()
-    dir_delete_signal = PySignal.ClassSignal()
-    move_signal = PySignal.ClassSignal()
-    dir_move_signal = PySignal.ClassSignal()
+    # Per-instance signals for different event types
+    create_signal = Signal(str)
+    dir_create_signal = Signal(str)
+    change_signal = Signal(str)
+    dir_change_signal = Signal(str)
+    delete_signal = Signal(str)
+    dir_delete_signal = Signal(str)
+    move_signal = Signal(tuple)
+    dir_move_signal = Signal(tuple)
 
     def on_any_event(self, event):
         """Handle all filesystem events and emit appropriate signals"""

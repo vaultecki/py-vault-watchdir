@@ -1,12 +1,12 @@
 [project]
 name = "py-vault-watchdir"
 version = "0.1.0"
-description = "Directory watcher with signal-based notifications, built on watchdog and PySignal"
+description = "Directory watcher with signal-based notifications, built on watchdog and psygnal"
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.7"
 dependencies = [
-    "PySignal>=1.1.1",
+    "psygnal>=0.9.0",
     "watchdog>=5.0.3",
 ]
 
