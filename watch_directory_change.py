@@ -4,14 +4,15 @@
 """
 Improved Directory Watcher with better error handling and resource management
 """
-import time
 import logging
+import time
 from pathlib import Path
 from threading import Event
 from typing import Optional
-import watchdog.observers
-import watchdog.events
+
 import PySignal
+import watchdog.events
+import watchdog.observers
 
 # Configure logging
 logging.basicConfig(
@@ -193,7 +194,6 @@ def on_file_moved(paths: tuple):
 if __name__ == '__main__':
     # Example usage with context manager
     import tempfile
-    import os
 
     # Create a temporary directory for testing
     with tempfile.TemporaryDirectory() as temp_dir:
