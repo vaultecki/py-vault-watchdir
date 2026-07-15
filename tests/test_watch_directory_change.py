@@ -152,6 +152,33 @@ class TestHandlerSignals:
             assert wait_until(lambda: len(received) > 0)
         assert received[0].endswith("subdir_to_delete")
 
+    def test_recursive_true_detects_subdirectory_changes(self, tmp_path):
+        subdir = tmp_path / "subdir"
+        subdir.mkdir()
+
+        received = []
+        with VaultWatch(str(tmp_path), recursive=True) as watch:
+            watch.event_handler.create_signal.connect(lambda p: received.append(p))
+
+            (subdir / "nested.txt").write_text("content")
+
+            assert wait_until(lambda: len(received) > 0)
+        assert received[0].endswith("nested.txt")
+
+    def test_recursive_false_ignores_subdirectory_changes(self, tmp_path):
+        subdir = tmp_path / "subdir"
+        subdir.mkdir()
+
+        received = []
+        with VaultWatch(str(tmp_path), recursive=False) as watch:
+            watch.event_handler.create_signal.connect(lambda p: received.append(p))
+
+            (subdir / "nested.txt").write_text("content")
+
+            # Negative assertion: give the observer a fair chance to (incorrectly)
+            # fire, then confirm it never did.
+            assert not wait_until(lambda: len(received) > 0, timeout=1.0)
+
     def test_handler_instances_have_independent_signals(self, tmp_path):
         handler_a = Handler()
         handler_b = Handler()

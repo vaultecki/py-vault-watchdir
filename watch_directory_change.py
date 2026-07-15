@@ -13,13 +13,10 @@ from typing import Optional
 import PySignal
 import watchdog.events
 import watchdog.observers
+from watchdog.observers.api import BaseObserver
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
 logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 
 class Handler(watchdog.events.FileSystemEventHandler):
@@ -104,7 +101,7 @@ class VaultWatch:
             raise ValueError(f"Path is not a directory: {watch_directory}")
 
         self.recursive = recursive
-        self.observer: Optional[watchdog.observers.Observer] = None
+        self.observer: Optional[BaseObserver] = None
         self.event_handler = Handler()
         self._stop_event = Event()
         self._started = False
@@ -156,7 +153,7 @@ class VaultWatch:
 
     def is_running(self) -> bool:
         """Check if watcher is currently running"""
-        return self._started and self.observer and self.observer.is_alive()
+        return bool(self._started and self.observer and self.observer.is_alive())
 
     def __enter__(self):
         """Context manager support"""
@@ -194,6 +191,11 @@ def on_file_moved(paths: tuple):
 if __name__ == '__main__':
     # Example usage with context manager
     import tempfile
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
 
     # Create a temporary directory for testing
     with tempfile.TemporaryDirectory() as temp_dir:
